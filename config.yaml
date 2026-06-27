@@ -1,0 +1,84 @@
+# ==============================================================================
+# Global Pipeline Framework Settings
+# ==============================================================================
+global_settings:
+  num_steps: 500             # Length of the generated time-series (rows)
+  num_realizations: 1000     # Dimension M: Number of parallel paths (columns)
+  burn_in: 500               # Discarded steps to eliminate initialization bias
+
+# ==============================================================================
+# Target Features to Extract (FeatureFactory Targets)
+# ==============================================================================
+features:
+  - name: "MEAN"
+    enabled: true
+  - name: "VARIANCE"
+    enabled: true
+  - name: "SKEWNESS"
+    enabled: true
+  - name: "KURTOSIS"
+    enabled: true
+  - name: "HURST_EXPONENT"
+    enabled: false
+  - name: "TREND_SLOPE"
+    enabled: false
+  - name: "SPECTRAL_DENSITY"
+    enabled: true
+
+# ==============================================================================
+# Model Configurations and Uniform Sampling Parameter Bounds
+# ==============================================================================
+models:
+  - name: "White-Noise"
+    enabled: true
+    parameter_bounds:
+      c: [-0.5, 0.5]                  # Process constant center shift
+      sigma: [0.1, 2.0]                 #  Noise standard deviation dispersion
+
+  - name: "AR(1)"
+    enabled: true
+    parameter_bounds:
+      c: [-0.1, 0.1]                  # intercept
+      phi: [0.75, 0.99]               # AR coefficient bounds (stationarity constraint)
+      sigma: [0.1, 2]                 # Innovation standard deviation
+
+  - name: "AR(1) + Noise"
+    enabled: false
+    parameter_bounds:
+      c: [-0.1, 0.1]
+      phi: [0.75, 0.99]
+      sigma_process: [0.1, 2]
+      sigma_measurement: [0.1, 2]
+
+  - name: "MA(1)"
+    enabled: false
+    parameter_bounds:
+      c: [-0.1, 0.1]
+      theta: [0.75, 0.99]            # Moving average lag weight (invertibility)
+      sigma: [0.0, 2]
+
+  - name: "MA(1) + Noise"
+    enabled: false
+    parameter_bounds:
+      c: [-0.1, 0.1]
+      phi: [0.75, 0.99]
+      sigma_process: [0.1, 2]
+      sigma_measurement: [0.1, 2]
+
+  - name: "Random Walk"
+    enabled: true
+    parameter_bounds:
+      drift: [-0.02, 0.02]
+      sigma: [0.1, 2]              # Integrated shock innovation spread
+
+  - name: "Random Walk"
+    enabled: true
+    parameter_bounds:
+      drift: [-0.02, 0.02]            # Constant linear time progression rate
+      sigma: [0.01, 1.0]
+
+  - name: "Random Walk + Noise"
+    enabled: false
+    parameter_bounds:
+      sigma_process: [0.1, 2]
+      sigma_measurement: [0.1, 2]

@@ -1,0 +1,87 @@
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Union
+import pyaml
+from pathlib import Path
+import numpy as np
+
+from simulators.enum_models import ProcessName
+from feature_extractors.enum_features import FeatureName
+
+
+@dataclass(frozen=True)
+class ModelConfig:
+    """Holds structured layout settings and parameter boundary thresholds for a single process model."""
+    name: str
+    process_enum: ProcessName
+    enabled: bool
+    parameter_bounds: Dict[str, Tuple[float, float]]
+
+
+@dataclass(frozen=True)
+class SimulationPipelineConfig:
+    """Holds global timeline lengths and execution blocks parsed from runtime configuration profiles."""
+    num_steps: int
+    num_realizations: int
+    burn_in: int
+    features: List[FeatureName] = field(default_factory=list)
+    models: List[ModelConfig] = field(default_factory=list)
+
+
+class ConfigReader:
+    """Parses consolidated simulation and feature extraction pipeline configurations using pyaml."""
+
+    @staticmethod
+    def load_config(file_path: Union[str, Path]) -> SimulationPipelineConfig:
+        """Loads and parses the configurations, mapping names to strict runtime Enums."""
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Configuration profile layout file missing at target: {path.absolute()}")
+
+        with open(path, 'r') as file:
+            raw_data = pyaml.yaml.safe_load(file)
+
+        globals_raw = raw_data.get("global_settings", {})
+
+        parsed_features = []
+        for f in raw_data.get("features", []):
+            if f.get("enabled", True):
+                try:
+                    parsed_features.append(FeatureName[f.get("name").upper()])
+                except KeyError:
+                    raise ValueError(f"Feature name identifier '{f.get('name')}' doesn't match feature enums.")
+
+        parsed_models = []
+        for m in raw_data.get("models", []):
+            name_str = m.get("name")
+            try:
+                process_enum = ProcessName.from_string(name_str)
+            except ValueError as e:
+                raise ValueError(f"YAML Configuration syntax structure fault: {e}")
+
+            bounds = {
+                param_name: tuple(bound_range)
+                for param_name, bound_range in m.get("parameter_bounds", {}).items()
+            }
+
+            parsed_models.append(
+                ModelConfig(name=name_str, process_enum=process_enum,
+                            enabled=m.get("enabled", True), parameter_bounds=bounds
+                )
+            )
+
+        return SimulationPipelineConfig(
+            num_steps=globals_raw.get("num_steps", 500),
+            num_realizations=globals_raw.get("num_realizations", 1000),
+            burn_in=globals_raw.get("burn_in", 250),
+            features=parsed_features,
+            models=parsed_models
+        )
+
+    @staticmethod
+    def generate_parameter_arrays(model_cfg: ModelConfig, num_realizations: int) -> Dict[str, np.ndarray]:
+        """Generates a dict of 1D numpy arrays uniformly sampled across bounds for parallel vectorization."""
+        sampled_vectors = {}
+        for param, bounds in model_cfg.parameter_bounds.items():
+            low, high = bounds
+            sampled_vectors[param] = np.random.uniform(low, high, size=num_realizations)
+        return sampled_vectors
