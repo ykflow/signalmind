@@ -1,3 +1,4 @@
+from typing import Any
 import numpy as np
 from simulators.abstract_models import AbstractTimeSeriesModel
 from simulators.enum_models import ModelType, ProcessName
@@ -6,7 +7,8 @@ from simulators.enum_models import ModelType, ProcessName
 class RandomWalkDriftModel(AbstractTimeSeriesModel):
     """Simulates multiple independent realizations of a Random Walk with drift."""
 
-    def __init__(self, drift: np.ndarray, sigma: np.ndarray):
+    def __init__(self, drift: np.ndarray, sigma: np.ndarray, **kwargs: Any):
+        super().__init__(**kwargs)
         self.drift = np.asarray(drift).flatten()
         self.sigma = np.asarray(sigma).flatten()
 

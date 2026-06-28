@@ -1,4 +1,7 @@
+from typing import Any
 import numpy as np
+import pandas as pd
+
 from feature_extractors.abstract_features import BaseFeatureExtractor
 from feature_extractors.enum_features import FeatureDomain, FeatureName
 
@@ -6,7 +9,7 @@ from feature_extractors.enum_features import FeatureDomain, FeatureName
 class PeriodogramExtractor(BaseFeatureExtractor):
     """Computes the mathematically exact Spectral Density Periodogram at any frequency with optional Daniell smoothing."""
 
-    def __init__(self, target_frequencies: np.ndarray, smoothing_span: int = 0):
+    def __init__(self, target_frequencies: np.ndarray, smoothing_span: int = 0, **kwargs: Any):
         """
         Args:
             target_frequencies: 1D array of normalized frequencies to extract,
@@ -14,6 +17,7 @@ class PeriodogramExtractor(BaseFeatureExtractor):
             smoothing_span: Half-bandwidth parameter 'm' for a Modified Daniell Filter.
                             0 means no smoothing. m > 0 looks m steps left and right.
         """
+        super().__init__(**kwargs)
         self._target_frequencies = np.asarray(target_frequencies).flatten()
         if np.any(self._target_frequencies < 0.0) or np.any(self._target_frequencies > 1.0):
             raise ValueError("Target frequencies must be between 0.0 and 1.0 (scaled by pi).")
@@ -32,28 +36,23 @@ class PeriodogramExtractor(BaseFeatureExtractor):
 
     def _apply_daniell_kernel(self, raw_periodogram: np.ndarray) -> np.ndarray:
         """Applies a Modified Daniell filter across the frequency rows (axis=0) using reflection."""
-        m = self.smoothing_span
-        if m == 0:
+        k = self.smoothing_span
+        if k == 0:
             return raw_periodogram
 
-        # 1. Build the Modified Daniell weights
-        weights = np.ones(2 * m + 1) / (2.0 * m)
-        weights[0] = 1.0 / (4.0 * m)
-        weights[-1] = 1.0 / (4.0 * m)
+        weights = np.ones(2 * k + 1) / (2.0 * k)
+        weights[0] = 1.0 / (4.0 * k)
+        weights[-1] = 1.0 / (4.0 * k)
 
-        # 2. FIX: Use 'reflect' mode so neighboring frequencies are mirrored
+        # Use 'reflect' mode so neighboring frequencies are mirrored
         # past the boundaries instead of duplicating the artificial zero at index 0.
-        padded = np.pad(raw_periodogram, ((m, m), (0, 0)), mode='reflect')
+        padded = np.pad(raw_periodogram, ((k, k), (0, 0)), mode='reflect')
 
-        # 3. Apply 1D convolution over frequency rows
-        smoothed = np.apply_along_axis(
-            lambda col: np.convolve(col, weights, mode='valid'),
-            axis=0,
-            arr=padded
-        )
+        # convolute over frequency rows
+        smoothed = np.apply_along_axis( lambda col: np.convolve(col, weights, mode='valid'), axis=0, arr=padded)
         return smoothed
 
-    def extract(self, data: np.ndarray) -> np.ndarray:
+    def extract(self, data: np.ndarray) -> pd.DataFrame:
         if data.ndim != 2:
             raise ValueError("Input data matrix must be 2D: (num_steps, num_realizations)")
 
@@ -66,4 +65,6 @@ class PeriodogramExtractor(BaseFeatureExtractor):
         dft_sum = np.matmul(kernel_matrix.T, centered_data)
 
         exact_periodogram = (np.abs(dft_sum) ** 2) / (2.0 * np.pi * num_steps)
-        return self._apply_daniell_kernel(exact_periodogram)
+        result = self._apply_daniell_kernel(exact_periodogram).T
+        result = pd.DataFrame(result, columns = [f'{FeatureName.SPECTRAL_DENSITY.value}-{x}' for x in self._target_frequencies])
+        return result

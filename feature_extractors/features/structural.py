@@ -1,3 +1,4 @@
+import pandas as pd
 import numpy as np
 from feature_extractors.abstract_features import BaseFeatureExtractor
 from feature_extractors.enum_features import FeatureDomain, FeatureName
@@ -28,7 +29,8 @@ class TrendSlopeExtractor(BaseFeatureExtractor):
         t_centered = t[:, np.newaxis] - mean_t
         var_t = np.sum(t_centered ** 2)
         covariance_t_data = np.sum(t_centered * (data - mean_data), axis=0)
-        return covariance_t_data / var_t  # slope (beta) = Cov(time, Y) / Var(time)
+        slope = covariance_t_data / var_t  # slope (beta) = Cov(time, Y) / Var(time)
+        return pd.DataFrame(slope, columns=[self.feature_name.value])
 
 
 class HurstExponentExtractor(BaseFeatureExtractor):
@@ -53,43 +55,26 @@ class HurstExponentExtractor(BaseFeatureExtractor):
         max_lag = int(np.floor(num_steps / 2))
         lags = np.unique(np.geomspace(10, max_lag, num=10).astype(int))
 
-        # Accumulate log(R/S) averages per lag interval
         log_rs_results = np.zeros((len(lags), num_realizations))
-
-        # 2. Vectorized loop over lag configurations
-        for idx, lag in enumerate(lags):
-            # Shape: (num_blocks, lag, num_realizations)
+        for idx, lag in enumerate(lags):             # Shape: (num_blocks, lag, num_realizations)
             num_blocks = num_steps // lag
             truncated_len = num_blocks * lag
-
-            # Reshape into split segments to process blocks simultaneously
             blocks = data[:truncated_len, :].reshape(num_blocks, lag, num_realizations)
-
-            # Local mean centering per block chunk
             block_means = np.mean(blocks, axis=1, keepdims=True)
-            centered_blocks = blocks - block_means
+            centered_blocks = blocks - block_means  # Local mean centering per block chunk
 
-            # Cumulative deviations inside chunks
             cum_deviations = np.cumsum(centered_blocks, axis=1)
-
-            # Calculate range (R) and standard deviations (S) per block across columns
             r_val = np.max(cum_deviations, axis=1) - np.min(cum_deviations, axis=1)
             s_val = np.std(blocks, axis=1)
 
-            # Guard against structural division by zero
-            s_val = np.where(s_val == 0.0, 1e-12, s_val)
-
-            # Average the rescaled ranges (R/S) across all available chunks
-            rs_vector = np.mean(r_val / s_val, axis=0)
+            s_val = np.where(s_val == 0.0, 1e-12, s_val) # Guard against structural division by zero
+            rs_vector = np.mean(r_val / s_val, axis=0)  # Average the rescaled ranges (R/S) across all available chunks
             log_rs_results[idx, :] = np.log(np.where(rs_vector <= 0.0, 1e-12, rs_vector))
 
-        # 3. Fit a line (log(lag) vs log(R/S)) for each realization column
         log_lags = np.log(lags)
         hurst_values = np.zeros(num_realizations)
-
         for m in range(num_realizations):
-            # Linear least-squares fit (slope represents the Hurst Exponent)
-            slope, _ = np.polyfit(log_lags, log_rs_results[:, m], 1)
+            slope, _ = np.polyfit(log_lags, log_rs_results[:, m], 1) # OLS step (slope represents the Hurst Exponent)
             hurst_values[m] = slope
 
-        return hurst_values
+        return pd.DataFrame(hurst_values, columns=[self.feature_name.value])

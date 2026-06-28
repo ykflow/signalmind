@@ -14,20 +14,9 @@ class ExtractFeaturesTask(AbstractTask):
         feature_names = context["feature_names"]
 
         total_realizations = data_matrix.shape[1]
-        print(f"[TASK] Extracting analytical feature arrays across {total_realizations} data tracks...")
-
-        # Batch operation over the completely integrated dataset matrix
-        extracted_metrics = FeatureFactory.extract_batch(names=feature_names, data=data_matrix)
-
-        # Build layout table strictly tracking metadata indexing and labels
-        features = pd.DataFrame({
-            "realization_idx": np.arange(total_realizations),
-            "model_name": model_labels
-        })
-
-        # Append calculated analytical summary feature columns directly without mixing parameter data
-        for feature_enum, metric_vector in extracted_metrics.items():
-            features[feature_enum.value] = metric_vector
-
+        print(f"[TASK] Extracting analytical feature arrays for {total_realizations} time-series...")
+        extracted_metrics = FeatureFactory.extract_batch(feature_configs=feature_names, data=data_matrix)
+        features = pd.concat(extracted_metrics, axis=1)
+        features = features.set_index(model_labels)
         context["features"] = features
         return context

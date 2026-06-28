@@ -42,13 +42,19 @@ class ConfigReader:
 
         globals_raw = raw_data.get("global_settings", {})
 
-        parsed_features = []
+        parsed_features = {}
         for f in raw_data.get("features", []):
             if f.get("enabled", True):
+                raw_name = f.get("name")
+                if not raw_name:
+                    continue
+
                 try:
-                    parsed_features.append(FeatureName[f.get("name").upper()])
+                    feature_enum = FeatureName[raw_name.upper()]
                 except KeyError:
-                    raise ValueError(f"Feature name identifier '{f.get('name')}' doesn't match feature enums.")
+                    raise ValueError(f"Feature name identifier '{raw_name}' doesn't match feature enums.")
+                feature_params = f.get("parameters", {})
+                parsed_features[feature_enum] = feature_params
 
         parsed_models = []
         for m in raw_data.get("models", []):

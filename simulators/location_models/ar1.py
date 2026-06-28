@@ -1,3 +1,4 @@
+from typing import Any
 import numpy as np
 from simulators.abstract_models import AbstractTimeSeriesModel
 from simulators.enum_models import ModelType, ProcessName
@@ -6,8 +7,9 @@ from simulators.enum_models import ModelType, ProcessName
 class AR1Model(AbstractTimeSeriesModel):
     """Simulates multiple independent realizations of an AR(1) process with varying parameters."""
 
-    def __init__(self, c: np.ndarray, phi: np.ndarray, sigma: np.ndarray):
+    def __init__(self, c: np.ndarray, phi: np.ndarray, sigma: np.ndarray, **kwargs: Any):
         # Force inputs to be flat 1D arrays
+        super().__init__(**kwargs)
         self.c = np.asarray(c).flatten()
         self.phi = np.asarray(phi).flatten()
         self.sigma = np.asarray(sigma).flatten()

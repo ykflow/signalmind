@@ -19,11 +19,14 @@ features:
   - name: "KURTOSIS"
     enabled: true
   - name: "HURST_EXPONENT"
-    enabled: false
+    enabled: true
   - name: "TREND_SLOPE"
-    enabled: false
+    enabled: true
   - name: "SPECTRAL_DENSITY"
     enabled: true
+    parameters:
+      target_frequencies: [0.1, 0.3, 0.5, 0.7, 0.9]
+      smoothing_span: 0
 
 # ==============================================================================
 # Model Configurations and Uniform Sampling Parameter Bounds
@@ -43,26 +46,26 @@ models:
       sigma: [0.1, 2]                 # Innovation standard deviation
 
   - name: "AR(1) + Noise"
-    enabled: false
+    enabled: true
     parameter_bounds:
       c: [-0.1, 0.1]
       phi: [0.75, 0.99]
-      sigma_process: [0.1, 2]
+      sigma_state: [0.1, 2]
       sigma_measurement: [0.1, 2]
 
   - name: "MA(1)"
-    enabled: false
+    enabled: true
     parameter_bounds:
       c: [-0.1, 0.1]
       theta: [0.75, 0.99]            # Moving average lag weight (invertibility)
       sigma: [0.0, 2]
 
   - name: "MA(1) + Noise"
-    enabled: false
+    enabled: true
     parameter_bounds:
       c: [-0.1, 0.1]
-      phi: [0.75, 0.99]
-      sigma_process: [0.1, 2]
+      theta: [0.75, 0.99]
+      sigma_state: [0.1, 2]
       sigma_measurement: [0.1, 2]
 
   - name: "Random Walk"
@@ -71,14 +74,14 @@ models:
       drift: [-0.02, 0.02]
       sigma: [0.1, 2]              # Integrated shock innovation spread
 
-  - name: "Random Walk"
+  - name: "Random Walk + Drift"
     enabled: true
     parameter_bounds:
       drift: [-0.02, 0.02]            # Constant linear time progression rate
       sigma: [0.01, 1.0]
 
   - name: "Random Walk + Noise"
-    enabled: false
+    enabled: true
     parameter_bounds:
-      sigma_process: [0.1, 2]
+      sigma_state: [0.1, 2]
       sigma_measurement: [0.1, 2]

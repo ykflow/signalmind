@@ -1,3 +1,4 @@
+from typing import Any
 import numpy as np
 from simulators.abstract_models import AbstractTimeSeriesModel
 from simulators.enum_models import ModelType, ProcessName
@@ -6,7 +7,8 @@ from simulators.enum_models import ModelType, ProcessName
 class MA1Model(AbstractTimeSeriesModel):
     """Simulates multiple independent realizations of an MA(1) process."""
 
-    def __init__(self, c: np.ndarray, theta: np.ndarray, sigma: np.ndarray):
+    def __init__(self, c: np.ndarray, theta: np.ndarray, sigma: np.ndarray, **kwargs: Any):
+        super().__init__(**kwargs)
         self.c = np.asarray(c).flatten()
         self.theta = np.asarray(theta).flatten()
         self.sigma = np.asarray(sigma).flatten()

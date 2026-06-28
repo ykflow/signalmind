@@ -1,5 +1,7 @@
-from typing import Dict, Type, List
+from typing import Dict, Type, Any
 import numpy as np
+import pandas as pd
+
 from feature_extractors.enum_features import FeatureName
 from feature_extractors.abstract_features import BaseFeatureExtractor
 from feature_extractors.features.statistical import (
@@ -25,16 +27,22 @@ class FeatureFactory:
     }
 
     @classmethod
-    def get_extractor(cls, name: FeatureName) -> BaseFeatureExtractor:
+    def get_extractor(cls, name: FeatureName, **kwargs: Any) -> BaseFeatureExtractor:
+        """Instantiates extractor. Passes optional configurations via **kwargs."""
         extractor_class = cls._registry.get(name)
         if not extractor_class:
             raise ValueError(f"No feature extractor registered for name: {name}")
-        return extractor_class()
+        return extractor_class(**kwargs)
 
     @classmethod
-    def extract_batch(cls, names: List[FeatureName], data: np.ndarray) -> Dict[FeatureName, np.ndarray]:
-        results = {}
-        for name in names:
-            extractor = cls.get_extractor(name)
-            results[name] = extractor.extract(data)
+    def extract_batch(cls, feature_configs: Dict[FeatureName, Dict[str, Any]],data: np.ndarray) -> list[pd.DataFrame]:
+        """
+        Executes a batch of features.
+
+        feature_configs: Dict mapping FeatureName -> parameter dictionary (e.g., {'target_frequencies': ...})
+        """
+        results = []
+        for name, params in feature_configs.items():
+            extractor = cls.get_extractor(name, **params)
+            results.append(extractor.extract(data))
         return results
