@@ -1,13 +1,13 @@
 from typing import Dict
 import numpy as np
-from utilities.config_reader import ModelConfig
+from utilities.config_reader import TimeSeriesModelConfig
 
 
 class ParameterSampler:
     """Handles generation of randomized parameter vectors from configuration bounds."""
 
     @classmethod
-    def sample_uniform(cls, model_cfg: ModelConfig, num_realizations: int) -> Dict[str, np.ndarray]:
+    def sample_uniform(cls, model_cfg: TimeSeriesModelConfig, num_realizations: int) -> Dict[str, np.ndarray]:
         """Generates flat 1D numpy arrays uniformly sampled across model configuration boundaries.
 
         Args:

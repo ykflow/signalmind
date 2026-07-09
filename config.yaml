@@ -1,5 +1,21 @@
 # ==============================================================================
-# Global Pipeline Framework Settings
+# MLP Classifier Configuration
+# ==============================================================================
+mlp:
+  hidden_layers: [256, 128, 64]   # Dynamic hidden sizing
+  dropout_rates: [0.4, 0.2, 0.1]  # Per-layer matching dropout configuration
+  activation: "leaky_relu"         # Options: relu, leaky_relu, gelu, elu
+  use_batch_norm: true            # Placed before activations to stabilize features
+  weight_init: "kaiming_normal"
+  training:
+    optimizer: "adamw"             # Supported strings: adamw, adam, sgd, rmsprop
+    learning_rate: 0.001           # Base training speed bound
+    weight_decay: 0.01             # Explicit L2 parameter penalization (for AdamW)
+    momentum: 0.9                  # Specific tuning value used only if SGD is targeted
+
+
+# ==============================================================================
+# Global Settings for TIme-Series Processes
 # ==============================================================================
 global_settings:
   num_steps: 500             # Length of the generated time-series (rows)
@@ -7,7 +23,7 @@ global_settings:
   burn_in: 500               # Discarded steps to eliminate initialization bias
 
 # ==============================================================================
-# Target Features to Extract (FeatureFactory Targets)
+# Target Features to Extract (FeatureFactory)
 # ==============================================================================
 features:
   - name: "MEAN"
@@ -29,7 +45,7 @@ features:
       smoothing_span: 0
 
 # ==============================================================================
-# Model Configurations and Uniform Sampling Parameter Bounds
+# Time-Series Model Configurations and Uniform Sampling Parameter Bounds
 # ==============================================================================
 models:
   - name: "White-Noise"
@@ -72,12 +88,12 @@ models:
     enabled: true
     parameter_bounds:
       drift: [-0.02, 0.02]
-      sigma: [0.1, 2]              # Integrated shock innovation spread
+      sigma: [0.1, 2]
 
   - name: "Random Walk + Drift"
     enabled: true
     parameter_bounds:
-      drift: [-0.02, 0.02]            # Constant linear time progression rate
+      drift: [-0.02, 0.02]            # Constant linear time trend/slop
       sigma: [0.01, 1.0]
 
   - name: "Random Walk + Noise"

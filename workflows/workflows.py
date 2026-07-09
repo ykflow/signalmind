@@ -1,9 +1,9 @@
 from typing import Any, Dict
 from workflows.abstract_workflow import AbstractWorkflow
-from workflows.workflow_tasks.read_config_task import ReadConfigTask
-from workflows.workflow_tasks.generate_parameters_task import GenerateModelParameterTask
-from workflows.workflow_tasks.simulate_models_task import SimulateModelsTask
-from workflows.workflow_tasks.extract_features_task import ExtractFeaturesTask
+from workflows.tasks.read_config_task import ReadConfigTask
+from workflows.tasks.generate_parameters_task import GenerateModelParameterTask
+from workflows.tasks.simulate_models_task import SimulateModelsTask
+from workflows.tasks.extract_features_task import ExtractFeaturesTask
 
 
 class MainSignalMindWorkflow(AbstractWorkflow):
